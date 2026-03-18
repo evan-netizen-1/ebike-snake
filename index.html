@@ -1055,12 +1055,18 @@ function draw() {
 
 // ── INPUT ──
 document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(key)) {
+    // pull focus away from dropdowns/buttons so they don't swallow keys
+    document.activeElement?.blur();
+    e.preventDefault();
+  }
   switch (e.key) {
-    case 'ArrowUp':    case 'w': case 'W': if (dir.y !== 1)  nextDir = { x:0, y:-1 }; e.preventDefault(); break;
-    case 'ArrowDown':  case 's': case 'S': if (dir.y !== -1) nextDir = { x:0, y:1 };  e.preventDefault(); break;
-    case 'ArrowLeft':  case 'a': case 'A': if (dir.x !== 1)  nextDir = { x:-1, y:0 }; e.preventDefault(); break;
-    case 'ArrowRight': case 'd': case 'D': if (dir.x !== -1) nextDir = { x:1, y:0 };  e.preventDefault(); break;
-    case ' ': togglePause(); e.preventDefault(); break;
+    case 'ArrowUp':    case 'w': case 'W': if (dir.y !== 1)  nextDir = { x:0, y:-1 }; break;
+    case 'ArrowDown':  case 's': case 'S': if (dir.y !== -1) nextDir = { x:0, y:1 };  break;
+    case 'ArrowLeft':  case 'a': case 'A': if (dir.x !== 1)  nextDir = { x:-1, y:0 }; break;
+    case 'ArrowRight': case 'd': case 'D': if (dir.x !== -1) nextDir = { x:1, y:0 };  break;
+    case ' ': togglePause(); break;
   }
 });
 
