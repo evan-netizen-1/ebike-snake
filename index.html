@@ -491,7 +491,8 @@ const COLS = 20;
 const ROWS = 18;
 const W = COLS * CELL;
 const H = ROWS * CELL;
-const SCORES_URL = 'https://jsonblob.com/api/jsonBlob/019cfecb-a7c3-7acf-8055-b515f20252cf';
+const API_GET  = 'https://evan-netizen-1--ebike-snake-leaderboard-get-scores.modal.run';
+const API_POST = 'https://evan-netizen-1--ebike-snake-leaderboard-add-score.modal.run';
 
 const THEMES = {
   cyan:    { primary: '#00dcff', primaryRGB: '0,220,255',     dim: '#005f70', bg: '#020510', gridLine: 'rgba(0,220,255,0.07)',   wall: '#00dcff', wallGlow: 'rgba(0,220,255,0.5)',     trail: '#00dcff', trailGlow: 'rgba(0,220,255,0.4)',     food: '#ff3366', foodGlow: 'rgba(255,51,102,0.6)',     scanline: 'rgba(0,220,255,0.015)' },
@@ -588,40 +589,41 @@ function sfxPowerup(){ playTone(200, 0.3, 'sawtooth', 0.1, 1600); setTimeout(() 
 function sfxDeath() { playNoise(0.4, 0.2); playTone(400, 0.5, 'sawtooth', 0.15, 30); setTimeout(() => playTone(200, 0.3, 'square', 0.1, 20), 100); }
 function sfxStart() { playTone(200,0.1,'square',0.08,400); setTimeout(()=>playTone(400,0.1,'square',0.08,800),100); setTimeout(()=>playTone(800,0.15,'sine',0.1,1200),200); }
 
-// ── LEADERBOARD (shared via jsonblob.com) ──
+// ── LEADERBOARD (shared via Modal API) ──
 let allScores = {};
 
 async function loadAllScores() {
   try {
-    const res = await fetch(SCORES_URL, { headers: { 'Accept': 'application/json' } });
+    const res = await fetch(API_GET);
     if (res.ok) allScores = await res.json();
   } catch (e) {
     console.warn('Leaderboard offline, using local scores');
     allScores = JSON.parse(localStorage.getItem('ebikeScoresLocal') || '{}');
   }
+  // also sync local backup
+  localStorage.setItem('ebikeScoresLocal', JSON.stringify(allScores));
 }
 
 async function saveScoreOnline(mode, name, score) {
-  try {
-    // load fresh to avoid overwriting
-    const res = await fetch(SCORES_URL, { headers: { 'Accept': 'application/json' } });
-    if (res.ok) allScores = await res.json();
-  } catch(e) {}
-
+  // save locally first as backup
   if (!allScores[mode]) allScores[mode] = [];
   allScores[mode].push({ name, score, date: Date.now() });
   allScores[mode].sort((a, b) => b.score - a.score);
   allScores[mode] = allScores[mode].slice(0, 10);
-
-  // save locally as backup
   localStorage.setItem('ebikeScoresLocal', JSON.stringify(allScores));
 
   try {
-    await fetch(SCORES_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(allScores),
+    const res = await fetch(API_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, name, score }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.scores) allScores[mode] = data.scores;
+    }
+    // reload all scores to stay in sync
+    await loadAllScores();
   } catch(e) {
     console.warn('Could not save to leaderboard');
   }
